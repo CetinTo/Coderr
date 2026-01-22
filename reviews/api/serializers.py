@@ -1,44 +1,67 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from rest_framework import serializers
-
-# 3. Lokale Importe
-from .models import Review
+from ..models import Review
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
-    """Serializer for Review list (GET /api/reviews/)"""
-    business_user = serializers.IntegerField(source='business.id', read_only=True)
-    reviewer = serializers.IntegerField(source='customer.id', read_only=True)
-    description = serializers.CharField(source='comment', read_only=True)
+    """
+    Serializer for Review list (GET /api/reviews/).
+    
+    Uses ModelSerializer which automatically includes all model fields.
+    Uses to_representation() to format the response structure (business_user, reviewer, description).
+    """
     
     class Meta:
         model = Review
-        fields = ['id', 'business_user', 'reviewer', 'rating', 'description', 
+        fields = ['id', 'customer', 'business', 'rating', 'comment', 
                  'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def to_representation(self, instance):
+        """
+        Format the output representation.
+        
+        Converts the response structure to match frontend expectations:
+        - business_user: business.id
+        - reviewer: customer.id
+        - description: comment
+        """
+        data = super().to_representation(instance)
+        
+        # Flatten business to business_user
+        if 'business' in data:
+            data['business_user'] = data['business']
+            del data['business']
+        
+        # Flatten customer to reviewer
+        if 'customer' in data:
+            data['reviewer'] = data['customer']
+            del data['customer']
+        
+        # Rename comment to description
+        if 'comment' in data:
+            data['description'] = data['comment']
+            del data['comment']
+        
+        return data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """Serializer for Review"""
-    customer_id = serializers.IntegerField(source='customer.id', read_only=True)
-    customer_username = serializers.CharField(source='customer.username', read_only=True)
-    business_id = serializers.IntegerField(source='business.id', read_only=True)
-    business_username = serializers.CharField(source='business.username', read_only=True)
+    """
+    Base Serializer for Review.
+    
+    Uses ModelSerializer which automatically includes all model fields.
+    The model fields (customer, business, order, rating, comment) come from the model.
+    """
     
     class Meta:
         model = Review
-        fields = ['id', 'customer', 'customer_id', 'customer_username', 'business', 
-                 'business_id', 'business_username', 'order', 'rating', 'comment', 
+        fields = ['id', 'customer', 'business', 'order', 'rating', 'comment', 
                  'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def validate_rating(self, value):
-        """Validate rating."""
-        if value < 1 or value > 5:
-            raise serializers.ValidationError("The rating must be between 1 and 5.")
+        if isinstance(value, str):
+            raise serializers.ValidationError("Rating must be an integer, not a string.")
         return value
 
 
@@ -49,7 +72,8 @@ class ReviewCreateSerializer(serializers.Serializer):
     description = serializers.CharField(required=True, allow_blank=True)
     
     def validate_business_user(self, value):
-        """Validate that the business user exists and is a business user"""
+        if isinstance(value, str):
+            raise serializers.ValidationError("Business user ID must be an integer, not a string.")
         from accounts_app.models import User
         try:
             user = User.objects.get(pk=value)
@@ -60,9 +84,8 @@ class ReviewCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("The specified business user was not found.")
     
     def validate_rating(self, value):
-        """Validate that the rating is between 1 and 5"""
-        if value < 1 or value > 5:
-            raise serializers.ValidationError("The rating must be between 1 and 5.")
+        if isinstance(value, str):
+            raise serializers.ValidationError("Rating must be an integer, not a string.")
         return value
     
     def validate(self, attrs):
@@ -98,25 +121,33 @@ class ReviewCreateSerializer(serializers.Serializer):
 
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating a Review (rating and description only)"""
-    description = serializers.CharField(source='comment', required=False, allow_blank=True)
-    
     class Meta:
         model = Review
-        fields = ['rating', 'description']
+        fields = ['rating', 'comment']
     
     def validate_rating(self, value):
-        """Validate that the rating is between 1 and 5"""
-        if value < 1 or value > 5:
-            raise serializers.ValidationError("The rating must be between 1 and 5.")
+        if isinstance(value, str):
+            raise serializers.ValidationError("Rating must be an integer, not a string.")
         return value
     
     def update(self, instance, validated_data):
-        """Update only rating and description"""
+        """Update only rating and comment"""
         if 'comment' in validated_data:
             instance.comment = validated_data['comment']
         if 'rating' in validated_data:
             instance.rating = validated_data['rating']
         instance.save()
         return instance
-
+    
+    def to_representation(self, instance):
+        """
+        Format the output representation.
+        
+        Converts the response structure to match frontend expectations:
+        - Renames 'comment' to 'description'
+        """
+        data = super().to_representation(instance)
+        if 'comment' in data:
+            data['description'] = data['comment']
+            del data['comment']
+        return data

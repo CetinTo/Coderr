@@ -1,15 +1,9 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from rest_framework import filters, status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
-# 3. Lokale Importe
-from .api.permissions import IsCustomerUser, IsReviewOwner
-from .models import Review
+from .permissions import IsCustomerUser, IsReviewOwner
+from ..models import Review
 from .serializers import (
     ReviewCreateSerializer,
     ReviewListSerializer,
@@ -110,10 +104,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Return response with ReviewListSerializer
         response_serializer = ReviewListSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
-    
-    def perform_update(self, serializer):
-        """Perform the update"""
-        serializer.save()
     
     def destroy(self, request, *args, **kwargs):
         """Delete a review with ownership check"""

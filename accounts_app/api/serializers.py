@@ -1,12 +1,6 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-
-# 3. Lokale Importe
 from accounts_app.models import BusinessProfile, CustomerProfile, User
 
 
@@ -74,33 +68,65 @@ class LoginSerializer(serializers.Serializer):
 
 
 class BusinessProfileSerializer(serializers.ModelSerializer):
-    """Serializer for Business Profile"""
+    """
+    Serializer for Business Profile.
+    
+    Uses ModelSerializer which automatically includes all model fields.
+    The nested 'user' field provides full user information via UserSerializer.
+    Uses to_representation() to add 'username' for a flatter API response structure.
+    """
     user = UserSerializer(read_only=True)
-    username = serializers.CharField(source='user.username', read_only=True)
     
     class Meta:
         model = BusinessProfile
-        fields = ['id', 'user', 'username', 'company_name', 'description', 'phone', 
+        fields = ['id', 'user', 'company_name', 'description', 'phone', 
                  'email', 'location', 'working_hours', 'profile_picture', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
     
+    def to_representation(self, instance):
+        """
+        Format the output representation.
+        
+        Adds 'username' field from user.username for convenience.
+        """
+        data = super().to_representation(instance)
+        if 'user' in data and isinstance(data['user'], dict) and 'username' in data['user']:
+            data['username'] = data['user']['username']
+        return data
+    
     def validate_company_name(self, value):
-        """Validate company name."""
+        """Validate company name - ensure it's not empty."""
         if not value:
             raise serializers.ValidationError("Company name cannot be empty.")
         return value
 
 
 class CustomerProfileSerializer(serializers.ModelSerializer):
-    """Serializer for Customer Profile"""
+    """
+    Serializer for Customer Profile.
+    
+    Uses ModelSerializer which automatically includes all model fields.
+    The nested 'user' field provides full user information via UserSerializer.
+    Uses to_representation() to add 'username' for a flatter API response structure.
+    """
     user = UserSerializer(read_only=True)
-    username = serializers.CharField(source='user.username', read_only=True)
     
     class Meta:
         model = CustomerProfile
-        fields = ['id', 'user', 'username', 'bio', 'phone', 'email', 
+        fields = ['id', 'user', 'bio', 'phone', 'email', 
                  'location', 'profile_picture', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def to_representation(self, instance):
+        """
+        Format the output representation.
+        
+        Adds 'username' field from user.username for convenience.
+        """
+        data = super().to_representation(instance)
+        if 'user' in data and isinstance(data['user'], dict) and 'username' in data['user']:
+            data['username'] = data['user']['username']
+        return data
 
 
 class ProfileDetailSerializer(serializers.Serializer):

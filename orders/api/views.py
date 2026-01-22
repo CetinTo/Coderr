@@ -1,17 +1,11 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-# 3. Lokale Importe
-from .api.permissions import IsBusinessPartner, IsCustomerUser, IsOrderParticipant, IsStaff
-from .models import Order
+from .permissions import IsBusinessPartner, IsCustomerUser, IsOrderParticipant, IsStaff
+from ..models import Order
 from .serializers import (
     OrderCreateSerializer,
     OrderListSerializer,
@@ -93,10 +87,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         response_serializer = OrderListSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     
-    def perform_update(self, serializer):
-        """Perform the update"""
-        serializer.save()
-    
     def destroy(self, request, *args, **kwargs):
         """Orders cannot be deleted once created."""
         return Response(
@@ -110,7 +100,6 @@ class OrderCountView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Get orders for a business user."""
         from accounts_app.models import User
         business_user_id = self.kwargs.get('business_user_id')
         try:
@@ -125,7 +114,6 @@ class OrderCountView(APIView):
             return Order.objects.none()
     
     def get(self, request, business_user_id):
-        """Count of in-progress orders for a business user."""
         from accounts_app.models import User
         try:
             user = User.objects.get(id=business_user_id)
@@ -154,7 +142,6 @@ class CompletedOrderCountView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Get completed orders for a business user."""
         from accounts_app.models import User
         business_user_id = self.kwargs.get('business_user_id')
         try:
@@ -169,7 +156,6 @@ class CompletedOrderCountView(APIView):
             return Order.objects.none()
     
     def get(self, request, business_user_id):
-        """Count of completed orders for a business user."""
         from accounts_app.models import User
         try:
             user = User.objects.get(id=business_user_id)

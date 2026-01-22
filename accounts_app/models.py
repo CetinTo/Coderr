@@ -1,12 +1,5 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-
-# 3. Lokale Importe
-# (none)
 
 
 class User(AbstractUser):

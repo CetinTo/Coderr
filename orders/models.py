@@ -1,11 +1,5 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.conf import settings
 from django.db import models
-
-# 3. Lokale Importe
 from offers.models import Offer, OfferDetail
 
 

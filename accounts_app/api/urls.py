@@ -1,11 +1,5 @@
 """URL configuration for accounts_app API."""
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.urls import path
-
-# 3. Lokale Importe
 from accounts_app.api import views
 
 app_name = 'accounts_app'

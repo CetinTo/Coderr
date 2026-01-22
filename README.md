@@ -1,6 +1,8 @@
 # Coderr Backend
 
-Django REST API Backend for the Coderr Frontend project.
+Django REST Framework API Backend for the Coderr Frontend project.
+
+A clean, optimized Django REST API following best practices with resource-oriented URLs, custom filter backends, database query optimizations, and comprehensive permission management.
 
 ## Table of Contents
 
@@ -156,13 +158,15 @@ python manage.py runserver 8000
 - `DELETE /api/offers/{id}/` - Delete offer (owner only)
 
 **Filter Parameters for Offers:**
-- `creator_id` - Filter by creator user ID
-- `search` - Search in title and description
+- `creator_id` - Filter by creator user ID (integer)
+- `search` - Search in title and description (string)
 - `ordering` - Sorting (`updated_at`, `-updated_at`, `min_price`, `-min_price`)
 - `page` - Page number (default: 1)
-- `page_size` - Items per page (default: 6)
-- `min_price` - Minimum price filter
-- `max_delivery_time` - Maximum delivery time in days
+- `page_size` - Items per page (default: 6, max: 100)
+- `min_price` - Minimum price filter (number, validates type)
+- `max_delivery_time` - Maximum delivery time in days (integer, validates type)
+
+**Note:** All filter parameters are validated before applying filters. Invalid types (e.g., string instead of integer) will return `400 Bad Request` with a clear error message.
 
 **Example:**
 ```
@@ -172,6 +176,7 @@ GET /api/offers/?creator_id=1&search=web&ordering=min_price&page=1&page_size=6&m
 ### Offer Details
 
 - `GET /api/offerdetails/{id}/` - Get single offer detail (authenticated)
+- `GET /api/offers/details/{id}/` - Alternative URL for offer detail (authenticated)
 
 ### Orders
 
@@ -181,7 +186,7 @@ GET /api/offers/?creator_id=1&search=web&ordering=min_price&page=1&page_size=6&m
   - Request Body: `{ "offer_detail_id": integer }`
 - `PATCH /api/orders/{id}/` - Update order status (business partner only)
   - Request Body: `{ "status": "pending" | "in_progress" | "completed" | "cancelled" }`
-- `DELETE /api/orders/{id}/` - Delete order (staff/admin only)
+- `DELETE /api/orders/{id}/` - Delete order (not allowed - returns 403 Forbidden)
 
 ### Reviews
 
@@ -203,8 +208,9 @@ GET /api/offers/?creator_id=1&search=web&ordering=min_price&page=1&page_size=6&m
   - Returns: review_count, average_rating, business_profile_count, offer_count
 
 - `GET /api/order-count/{business_user_id}/` - Count of in-progress orders for a business user
-
+- `GET /api/orders/business/{business_user_id}/count/` - Alternative URL for order count
 - `GET /api/completed-order-count/{business_user_id}/` - Count of completed orders for a business user
+- `GET /api/orders/business/{business_user_id}/completed-count/` - Alternative URL for completed order count
 
 ## Authentication
 
@@ -234,7 +240,7 @@ fetch('http://127.0.0.1:8000/api/profile/', {
 Coderr-Backend/
 ├── accounts_app/          # User authentication and profiles
 │   ├── api/               # API-specific files
-│   │   ├── permissions.py # Custom permissions
+│   │   ├── permissions.py # Custom permissions (IsOwnerOrReadOnly)
 │   │   ├── serializers.py # User serializers
 │   │   ├── urls.py        # API URL routing
 │   │   └── views.py       # Authentication and profile views
@@ -243,30 +249,31 @@ Coderr-Backend/
 │   └── migrations/        # Database migrations
 ├── offers/                # Offers and offer details
 │   ├── api/               # API-specific files
-│   │   ├── permissions.py # Custom permissions
-│   │   └── urls.py        # API URL routing
+│   │   ├── filters.py     # Custom filter backends (OfferFilterBackend, OfferOrderingFilter)
+│   │   ├── permissions.py # Custom permissions (IsOfferOwner, IsBusinessUser)
+│   │   ├── serializers.py # Offer serializers
+│   │   ├── urls.py        # API URL routing
+│   │   └── views.py       # Offer ViewSet and OfferDetailView
 │   ├── models.py          # Offer, OfferDetail
-│   ├── serializers.py     # Offer serializers
-│   ├── views.py           # Offer ViewSet
-│   ├── pagination.py      # Custom pagination
+│   ├── pagination.py      # Custom pagination (OfferPagination)
 │   ├── admin.py           # Django admin configuration
 │   └── migrations/        # Database migrations
 ├── orders/                # Order management
 │   ├── api/               # API-specific files
-│   │   ├── permissions.py # Custom permissions
-│   │   └── urls.py        # API URL routing
+│   │   ├── permissions.py # Custom permissions (IsOrderOwner, IsBusinessPartner, etc.)
+│   │   ├── serializers.py # Order serializers
+│   │   ├── urls.py        # API URL routing
+│   │   └── views.py       # Order ViewSet and count views
 │   ├── models.py          # Order model
-│   ├── serializers.py     # Order serializers
-│   ├── views.py           # Order ViewSet
 │   ├── admin.py           # Django admin configuration
 │   └── migrations/        # Database migrations
 ├── reviews/               # Review system
 │   ├── api/               # API-specific files
-│   │   ├── permissions.py # Custom permissions
-│   │   └── urls.py        # API URL routing
+│   │   ├── permissions.py # Custom permissions (IsReviewOwner, IsCustomerUser)
+│   │   ├── serializers.py # Review serializers
+│   │   ├── urls.py        # API URL routing
+│   │   └── views.py       # Review ViewSet
 │   ├── models.py          # Review model
-│   ├── serializers.py     # Review serializers
-│   ├── views.py           # Review ViewSet
 │   ├── admin.py           # Django admin configuration
 │   └── migrations/        # Database migrations
 ├── core/                  # Main project settings
@@ -306,11 +313,16 @@ The project uses SQLite by default for development. The database file (`db.sqlit
 
 ### Code Style
 
-The project follows PEP 8 Python style guidelines:
-- Maximum 14 lines per function
-- Each function has a single responsibility
-- All functions are documented with docstrings
-- No commented-out code or print statements
+The project follows Django REST Framework best practices and clean code principles:
+- Uses `ModelViewSet` for CRUD operations
+- Uses `APIView` for individual endpoints
+- Resource-oriented URLs (not action-based)
+- Clear separation of concerns (Models, Serializers, Views, Permissions)
+- Custom filter backends for complex filtering logic
+- Database-level calculations using `annotate()` and `aggregate()`
+- Optimized queries using `prefetch_related()` and `select_related()`
+- No redundant code or duplicate validations
+- Clean, compact code without unnecessary documentation
 
 ## Testing
 
@@ -336,6 +348,7 @@ python manage.py test reviews
 The project uses a custom User model (`accounts_app.User`) that extends Django's `AbstractUser` with:
 - `user_type` field (customer or business)
 - Custom profile models (BusinessProfile, CustomerProfile)
+- Automatic profile creation on user registration
 
 ### 2. Token Authentication
 
@@ -343,14 +356,19 @@ All authenticated endpoints require a valid token in the Authorization header.
 
 ### 3. Pagination
 
-- **Offers**: Uses custom pagination with configurable `page_size` (default: 6)
-- **Orders**: No pagination (returns all results)
-- **Reviews**: Custom pagination (all results by default, paginated if `page_size` is specified)
+- **Offers**: Uses custom pagination (`OfferPagination`) with configurable `page_size` (default: 6, max: 100)
+- **Orders**: No pagination (returns all results via `NoPagination`)
+- **Reviews**: Custom pagination (`ReviewPagination`) - all results by default, paginated if `page_size` is specified (max: 100)
 
 ### 4. Filtering and Sorting
 
-- Offers support multiple filter parameters and custom sorting
-- Reviews support filtering by business user and reviewer
+- **Offers**: Support multiple filter parameters and custom sorting via custom filter backends
+  - Filter by `creator_id`, `min_price`, `max_delivery_time`
+  - Search in `title` and `description`
+  - Order by `updated_at`, `min_price` (requires annotation)
+  - Custom `OfferFilterBackend` validates query parameters before filtering
+  - Custom `OfferOrderingFilter` handles `min_price` ordering with database annotations
+- **Reviews**: Support filtering by `business_user_id` and `reviewer_id`
 - All filter parameters are optional
 
 ### 5. File Uploads
@@ -361,15 +379,37 @@ All authenticated endpoints require a valid token in the Authorization header.
 
 ### 6. CORS Configuration
 
-CORS is configured to allow requests from frontend development servers. Update `CORS_ALLOWED_ORIGINS` for production.
+CORS is configured to allow requests from frontend development servers. The allowed origins are:
+- `http://localhost:5500`
+- `http://127.0.0.1:5500`
+- `http://localhost:8000`
+- `http://127.0.0.1:8000`
+
+Update `CORS_ALLOWED_ORIGINS` in `core/settings.py` for production.
 
 ### 7. Offer Details Validation
 
-When creating an offer, exactly 3 offer details are required with types: `basic`, `standard`, and `premium`.
+When creating an offer, exactly 3 offer details are required with types: `basic`, `standard`, and `premium`. The validation ensures type safety and prevents invalid data.
 
-### 8. Review Uniqueness
+### 8. Database Query Optimization
+
+The codebase uses Django ORM optimizations to prevent N+1 query problems:
+- `prefetch_related('details')` for loading related OfferDetail objects efficiently
+- `select_related('creator')` for loading creator User in the same query
+- `annotate()` for calculating `min_price` and `min_delivery_time` directly in the database
+- These optimizations significantly improve performance for large datasets
+
+### 9. Review Uniqueness
 
 Each customer can only create one review per business user.
+
+### 10. Order Deletion Protection
+
+Orders cannot be deleted once created. The `DELETE` endpoint returns `403 Forbidden` to prevent data loss.
+
+### 11. Deleted Offer Handling
+
+When an offer is deleted, associated orders are preserved (not deleted). However, new orders cannot be created for deleted offers. The `offer` and `offer_detail` fields in orders are set to `NULL` when the related offer is deleted.
 
 ## Troubleshooting
 

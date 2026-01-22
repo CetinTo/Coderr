@@ -1,13 +1,6 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
-# 3. Lokale Importe
-# (none)
 
 
 class Review(models.Model):

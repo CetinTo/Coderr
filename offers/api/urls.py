@@ -1,13 +1,7 @@
 """URL configuration for offers app API."""
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-
-# 3. Lokale Importe
-from offers import views
+from . import views
 
 app_name = 'offers'
 

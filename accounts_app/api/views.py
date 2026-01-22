@@ -1,7 +1,3 @@
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -10,7 +6,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-# 3. Lokale Importe
 from accounts_app.api.serializers import (
     BusinessProfileSerializer,
     CustomerProfileSerializer,
@@ -28,7 +23,6 @@ class RegistrationView(APIView):
     serializer_class = RegistrationSerializer
     
     def post(self, request):
-        """Register a new user."""
         serializer = RegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -48,7 +42,6 @@ class LoginView(APIView):
     serializer_class = LoginSerializer
     
     def post(self, request):
-        """User login."""
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
@@ -72,7 +65,6 @@ class LoginView(APIView):
 
 
 def _get_profile_data(user):
-    """Get profile data based on user type."""
     if user.user_type == 'business':
         try:
             profile = user.business_profile
@@ -94,7 +86,6 @@ class ProfileView(APIView):
     serializer_class = UserSerializer
     
     def get(self, request):
-        """Get current authenticated user's profile."""
         user = request.user
         serializer = UserSerializer(user)
         data = serializer.data
@@ -108,11 +99,9 @@ class BusinessProfilesView(APIView):
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        """Get all business users."""
         return User.objects.filter(user_type='business')
     
     def get(self, request):
-        """List all business profiles."""
         business_users = self.get_queryset()
         serializer = ProfileDetailSerializer()
         
@@ -129,11 +118,9 @@ class CustomerProfilesView(APIView):
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        """Get all customer users."""
         return User.objects.filter(user_type='customer')
     
     def get(self, request):
-        """List all customer profiles."""
         customer_users = self.get_queryset()
         serializer = ProfileDetailSerializer()
         
@@ -145,7 +132,6 @@ class CustomerProfilesView(APIView):
 
 
 def _update_user_fields(user, data):
-    """Update user first_name and last_name fields."""
     if 'first_name' in data:
         user.first_name = data.get('first_name', '') or ''
     if 'last_name' in data:
@@ -154,7 +140,6 @@ def _update_user_fields(user, data):
 
 
 def _update_business_profile(user, data):
-    """Update business profile fields."""
     profile = get_object_or_404(BusinessProfile, user=user)
     if 'description' in data:
         profile.description = data.get('description', '') or ''
@@ -172,7 +157,6 @@ def _update_business_profile(user, data):
 
 
 def _update_customer_profile(user, data):
-    """Update customer profile fields."""
     profile = get_object_or_404(CustomerProfile, user=user)
     if 'description' in data:
         profile.bio = data.get('description', '') or ''
@@ -187,10 +171,6 @@ def _update_customer_profile(user, data):
     user.save()
 
 
-def _get_profile_response(user):
-    """Get profile detail response."""
-    serializer = ProfileDetailSerializer(user)
-    return Response(serializer.to_representation(user))
 
 
 class ProfileDetailView(APIView):
@@ -199,11 +179,9 @@ class ProfileDetailView(APIView):
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        """Get all users."""
         return User.objects.all()
     
     def get(self, request, pk):
-        """Get profile detail."""
         try:
             user = self.get_queryset().get(pk=pk)
         except User.DoesNotExist:
@@ -211,10 +189,10 @@ class ProfileDetailView(APIView):
                 {'error': 'Profile not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        return _get_profile_response(user)
+        serializer = ProfileDetailSerializer(user)
+        return Response(serializer.to_representation(user))
     
     def patch(self, request, pk):
-        """Update profile detail."""
         try:
             user = self.get_queryset().get(pk=pk)
         except User.DoesNotExist:
@@ -241,7 +219,8 @@ class ProfileDetailView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        return _get_profile_response(user)
+        serializer = ProfileDetailSerializer(user)
+        return Response(serializer.to_representation(user))
 
 
 class BaseInfoView(APIView):
@@ -249,7 +228,6 @@ class BaseInfoView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Get base information."""
         from django.db.models import Avg
         from offers.models import Offer
         from reviews.models import Review

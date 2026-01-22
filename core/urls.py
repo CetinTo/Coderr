@@ -1,17 +1,8 @@
-"""
-URL configuration for core project.
-"""
-# 1. Standardbibliothek
-# (none)
-
-# 2. Drittanbieter
+"""URL configuration for core project."""
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-
-# 3. Lokale Importe
-# (none)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
