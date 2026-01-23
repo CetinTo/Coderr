@@ -155,6 +155,37 @@ python manage.py runserver 8000
 - `GET /api/offers/{id}/` - Get single offer (authenticated)
 - `POST /api/offers/` - Create new offer (business users only)
 - `PATCH /api/offers/{id}/` - Update offer (owner only)
+  - **Description**: Aktualisiert ein spezifisches Angebot. Ein PATCH überschreibt nur die angegebenen Felder. Es müssen nicht alle Felder angegeben werden, nur die, die aktualisiert werden sollen.
+  - **URL Parameters**:
+    - `id` - Die ID des zu aktualisierenden Angebots
+  - **Request Body** (alle Felder optional):
+    ```json
+    {
+      "title": "Updated Grafikdesign-Paket",
+      "description": "Ein umfassendes Grafikdesign-Paket für Unternehmen.",
+      "image": null,
+      "details": [
+        {
+          "title": "Basic Design Updated",
+          "revisions": 3,
+          "delivery_time_in_days": 6,
+          "price": 120,
+          "features": ["Logo Design", "Flyer"],
+          "offer_type": "basic"
+        }
+      ]
+    }
+    ```
+  - **Details Update**: Details werden über `offer_type` identifiziert (nicht über die ID). Der `offer_type` muss immer mitgegeben werden, um das Detail eindeutig zu identifizieren. Die IDs der Details bleiben automatisch unverändert und müssen nicht im Request Body sein.
+  - **Success Response**: Gibt das aktualisierte Angebot mit allen Feldern zurück, unabhängig davon, welche Felder in der Anfrage angegeben wurden.
+  - **Status Codes**:
+    - `200` - Das Angebot wurde erfolgreich aktualisiert
+    - `400` - Ungültige Anfragedaten oder unvollständige Details
+    - `401` - Benutzer ist nicht authentifiziert
+    - `403` - Authentifizierter Benutzer ist nicht der Eigentümer des Angebots
+    - `404` - Das Angebot mit der angegebenen ID wurde nicht gefunden
+    - `500` - Interner Serverfehler
+  - **Permissions**: Nur Ersteller des Angebotes können dies verändern
 - `DELETE /api/offers/{id}/` - Delete offer (owner only)
 
 **Filter Parameters for Offers:**

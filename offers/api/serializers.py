@@ -260,8 +260,12 @@ class OfferUpdateSerializer(serializers.ModelSerializer):
     Handles partial updates of Offer with optional nested OfferDetail updates.
     The model fields (title, description, image) are automatically included from the model.
     Only the nested 'details' field is explicitly defined as it requires special handling.
+    All fields are optional for PATCH requests.
     """
     details = OfferDetailSerializer(many=True, required=False)
+    title = serializers.CharField(required=False, allow_blank=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    image = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = Offer

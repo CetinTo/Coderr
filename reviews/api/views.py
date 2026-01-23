@@ -101,6 +101,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         
+        # Refresh instance to get updated data
+        instance.refresh_from_db()
+        
         # Return response with ReviewListSerializer
         response_serializer = ReviewListSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_200_OK)

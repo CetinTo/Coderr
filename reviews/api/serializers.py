@@ -121,9 +121,23 @@ class ReviewCreateSerializer(serializers.Serializer):
 
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Review Update (PATCH /api/reviews/{id}/).
+    
+    Accepts 'description' in request body and maps it to 'comment' in the model.
+    All fields are optional for PATCH requests.
+    """
+    description = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    rating = serializers.IntegerField(required=False)
+    
     class Meta:
         model = Review
-        fields = ['rating', 'comment']
+        fields = ['id', 'customer', 'business', 'rating', 'comment', 'description', 
+                 'created_at', 'updated_at']
+        read_only_fields = ['id', 'customer', 'business', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'comment': {'required': False, 'allow_blank': True}
+        }
     
     def validate_rating(self, value):
         if isinstance(value, str):
@@ -131,11 +145,16 @@ class ReviewUpdateSerializer(serializers.ModelSerializer):
         return value
     
     def update(self, instance, validated_data):
-        """Update only rating and comment"""
+        """Update rating and comment (from description field)"""
+        # Handle description field (maps to comment)
+        if 'description' in validated_data:
+            instance.comment = validated_data.pop('description')
+        # Handle comment field directly (if provided)
         if 'comment' in validated_data:
-            instance.comment = validated_data['comment']
+            instance.comment = validated_data.pop('comment')
+        # Handle rating
         if 'rating' in validated_data:
-            instance.rating = validated_data['rating']
+            instance.rating = validated_data.pop('rating')
         instance.save()
         return instance
     
@@ -144,10 +163,26 @@ class ReviewUpdateSerializer(serializers.ModelSerializer):
         Format the output representation.
         
         Converts the response structure to match frontend expectations:
-        - Renames 'comment' to 'description'
+        - business_user: business.id
+        - reviewer: customer.id
+        - description: comment
+        - Includes all fields: id, rating, created_at, updated_at, business_user, reviewer, description
         """
         data = super().to_representation(instance)
+        
+        # Flatten business to business_user
+        if 'business' in data:
+            data['business_user'] = data['business']
+            del data['business']
+        
+        # Flatten customer to reviewer
+        if 'customer' in data:
+            data['reviewer'] = data['customer']
+            del data['customer']
+        
+        # Rename comment to description (comment is write_only in Meta, so get from instance)
+        data['description'] = instance.comment if instance.comment else ''
         if 'comment' in data:
-            data['description'] = data['comment']
             del data['comment']
+        
         return data
