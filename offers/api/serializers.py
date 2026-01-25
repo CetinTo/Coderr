@@ -76,7 +76,25 @@ class OfferListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_details(self, obj):
-        return [OfferDetailSerializer(detail).data for detail in obj.details.all()]
+        """
+        Returns id and URL for each detail.
+        
+        Uses prefetched details from get_queryset() to avoid additional queries.
+        Only returns minimal data (id and url) for list view.
+        """
+        request = self.context.get('request')
+        base_url = request.build_absolute_uri('/') if request else 'http://127.0.0.1:8000/'
+        if base_url.endswith('/'):
+            base_url = base_url[:-1]
+        
+        details = obj.details.all()
+        return [
+            {
+                'id': detail.id,
+                'url': f"{base_url}/api/offerdetails/{detail.id}/"
+            }
+            for detail in details
+        ]
     
     def get_user_details(self, obj):
         """
