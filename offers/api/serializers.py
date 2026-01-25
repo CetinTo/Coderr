@@ -4,13 +4,6 @@ from ..models import Offer, OfferDetail
 
 
 class OfferDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer for OfferDetail.
-    
-    Uses ModelSerializer which automatically includes all model fields.
-    Only defines custom fields when necessary (e.g., for formatting or validation).
-    """
-    
     class Meta:
         model = OfferDetail
         fields = ['id', 'offer_type', 'title', 'price', 'delivery_time_in_days', 
@@ -76,12 +69,6 @@ class OfferListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_details(self, obj):
-        """
-        Returns id and URL for each detail.
-        
-        Uses prefetched details from get_queryset() to avoid additional queries.
-        Only returns minimal data (id and url) for list view.
-        """
         request = self.context.get('request')
         base_url = request.build_absolute_uri('/') if request else 'http://127.0.0.1:8000/'
         if base_url.endswith('/'):
@@ -97,11 +84,6 @@ class OfferListSerializer(serializers.ModelSerializer):
         ]
     
     def get_user_details(self, obj):
-        """
-        Returns user details.
-        
-        Uses select_related('creator') from get_queryset() to avoid additional queries.
-        """
         creator = obj.creator
         return {
             'first_name': creator.first_name or '',
@@ -226,11 +208,6 @@ class OfferDetailResponseSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_details(self, obj):
-        """
-        Returns id and full URL for each detail.
-        
-        Uses prefetched details from get_queryset() to avoid additional queries.
-        """
         request = self.context.get('request')
         base_url = request.build_absolute_uri('/') if request else 'http://127.0.0.1:8000/'
         if base_url.endswith('/'):

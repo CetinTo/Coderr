@@ -18,7 +18,6 @@ from accounts_app.models import BusinessProfile, CustomerProfile, User
 
 
 class RegistrationView(APIView):
-    """API view for user registration."""
     permission_classes = [AllowAny]
     serializer_class = RegistrationSerializer
     
@@ -37,7 +36,6 @@ class RegistrationView(APIView):
 
 
 class LoginView(APIView):
-    """API view for user login."""
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
     
@@ -81,7 +79,6 @@ def _get_profile_data(user):
 
 
 class ProfileView(APIView):
-    """API view for current authenticated user's profile."""
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     
@@ -94,12 +91,11 @@ class ProfileView(APIView):
 
 
 class BusinessProfilesView(APIView):
-    """API view for listing all business profiles."""
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        return User.objects.filter(user_type='business')
+        return User.objects.prefetch_related('business_profile').filter(user_type='business')
     
     def get(self, request):
         business_users = self.get_queryset()
@@ -113,12 +109,11 @@ class BusinessProfilesView(APIView):
 
 
 class CustomerProfilesView(APIView):
-    """API view for listing all customer profiles."""
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        return User.objects.filter(user_type='customer')
+        return User.objects.prefetch_related('customer_profile').filter(user_type='customer')
     
     def get(self, request):
         customer_users = self.get_queryset()
@@ -174,12 +169,11 @@ def _update_customer_profile(user, data):
 
 
 class ProfileDetailView(APIView):
-    """API view for getting or updating profile detail."""
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileDetailSerializer
     
     def get_queryset(self):
-        return User.objects.all()
+        return User.objects.prefetch_related('business_profile', 'customer_profile').all()
     
     def get(self, request, pk):
         try:
@@ -224,7 +218,6 @@ class ProfileDetailView(APIView):
 
 
 class BaseInfoView(APIView):
-    """API view for base information for the homepage."""
     permission_classes = [AllowAny]
     
     def get(self, request):

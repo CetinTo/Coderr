@@ -26,7 +26,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     pagination_class = NoPagination
     
     def get_permissions(self):
-        """Permissions depending on action"""
         if self.action == 'list':
             # Authenticated users can list (filtered by get_queryset)
             permission_classes = [IsAuthenticated]
@@ -47,16 +46,23 @@ class OrderViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        """Only own orders or orders for own offers"""
+        """
+        Optimized queryset with select_related to prevent N+1 queries.
+        
+        Accesses offer.creator and offer_detail in OrderListSerializer.to_representation(),
+        so these must be loaded with select_related to avoid additional queries per order.
+        """
         user = self.request.user
-        # Returns orders where the user is either customer or business partner
-        # Handle both cases: offer exists and offer is deleted (NULL)
-        return Order.objects.filter(
-            Q(customer=user) | Q(offer__creator=user) | Q(customer=user, offer__isnull=True)
-        ).distinct()
+        return (
+            Order.objects
+            .select_related('customer', 'offer', 'offer__creator', 'offer_detail')
+            .filter(
+                Q(customer=user) | Q(offer__creator=user) | Q(customer=user, offer__isnull=True)
+            )
+            .distinct()
+        )
     
     def get_serializer_class(self):
-        """Use different serializers depending on action"""
         if self.action == 'list':
             return OrderListSerializer
         elif self.action == 'create':
@@ -66,10 +72,12 @@ class OrderViewSet(viewsets.ModelViewSet):
         return OrderSerializer
     
     def create(self, request, *args, **kwargs):
-        """Create a new order with validation"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
+        
+        # Reload order with select_related to avoid N+1 queries in serializer
+        order = Order.objects.select_related('customer', 'offer', 'offer__creator', 'offer_detail').get(pk=order.pk)
         
         # Return response with OrderListSerializer
         response_serializer = OrderListSerializer(order)
@@ -77,7 +85,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def update(self, request, *args, **kwargs):
-        """Update an order with validation"""
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -88,7 +95,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     
     def destroy(self, request, *args, **kwargs):
-        """Orders cannot be deleted once created."""
         return Response(
             {'error': 'Orders cannot be deleted once they have been created.'},
             status=status.HTTP_403_FORBIDDEN
@@ -96,7 +102,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
 class OrderCountView(APIView):
-    """API view for count of in-progress orders for a business user."""
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -138,7 +143,6 @@ class OrderCountView(APIView):
 
 
 class CompletedOrderCountView(APIView):
-    """API view for count of completed orders for a business user."""
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):

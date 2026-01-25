@@ -39,7 +39,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     ordering = ['-updated_at']
     
     def get_permissions(self):
-        """Permissions depending on action"""
         if self.action in ['list', 'retrieve']:
             # Authenticated users can view reviews
             permission_classes = [IsAuthenticated]
@@ -54,8 +53,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        """Filter reviews by business or reviewer"""
-        queryset = Review.objects.all()
+        """
+        Optimized queryset with select_related to prevent N+1 queries.
+        
+        Accesses customer and business in ReviewListSerializer.to_representation(),
+        so these must be loaded with select_related to avoid additional queries per review.
+        """
+        queryset = Review.objects.select_related('customer', 'business').all()
         business_user_id = self.request.query_params.get('business_user_id', None)
         reviewer_id = self.request.query_params.get('reviewer_id', None)
         
@@ -74,7 +78,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return queryset
     
     def get_serializer_class(self):
-        """Use different serializers depending on action"""
         if self.action == 'list':
             return ReviewListSerializer
         elif self.action == 'create':
@@ -84,10 +87,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return ReviewSerializer
     
     def create(self, request, *args, **kwargs):
-        """Create a new review with validation"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         review = serializer.save()
+        
+        # Reload review with select_related to avoid N+1 queries in serializer
+        review = Review.objects.select_related('customer', 'business').get(pk=review.pk)
         
         # Return response with ReviewListSerializer
         response_serializer = ReviewListSerializer(review)
@@ -95,7 +100,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def update(self, request, *args, **kwargs):
-        """Update a review with ownership check"""
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -109,7 +113,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     
     def destroy(self, request, *args, **kwargs):
-        """Delete a review with ownership check"""
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)

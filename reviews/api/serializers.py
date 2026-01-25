@@ -3,12 +3,7 @@ from ..models import Review
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Review list (GET /api/reviews/).
-    
-    Uses ModelSerializer which automatically includes all model fields.
-    Uses to_representation() to format the response structure (business_user, reviewer, description).
-    """
+    """Serializer for Review list (GET /api/reviews/)."""
     
     class Meta:
         model = Review
@@ -17,14 +12,6 @@ class ReviewListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def to_representation(self, instance):
-        """
-        Format the output representation.
-        
-        Converts the response structure to match frontend expectations:
-        - business_user: business.id
-        - reviewer: customer.id
-        - description: comment
-        """
         data = super().to_representation(instance)
         
         # Flatten business to business_user
@@ -46,13 +33,6 @@ class ReviewListSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """
-    Base Serializer for Review.
-    
-    Uses ModelSerializer which automatically includes all model fields.
-    The model fields (customer, business, order, rating, comment) come from the model.
-    """
-    
     class Meta:
         model = Review
         fields = ['id', 'customer', 'business', 'order', 'rating', 'comment', 
@@ -66,7 +46,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class ReviewCreateSerializer(serializers.Serializer):
-    """Serializer for creating a Review"""
     business_user = serializers.IntegerField(required=True, write_only=True)
     rating = serializers.IntegerField(required=True)
     description = serializers.CharField(required=True, allow_blank=True)
@@ -89,7 +68,6 @@ class ReviewCreateSerializer(serializers.Serializer):
         return value
     
     def validate(self, attrs):
-        """Validate that the customer has not already reviewed this business user"""
         customer = self.context['request'].user
         business_user_id = attrs['business_user']
         
@@ -102,7 +80,6 @@ class ReviewCreateSerializer(serializers.Serializer):
         return attrs
     
     def create(self, validated_data):
-        """Create a new review"""
         from accounts_app.models import User
         business_user_id = validated_data.pop('business_user')
         description = validated_data.pop('description')
@@ -122,10 +99,7 @@ class ReviewCreateSerializer(serializers.Serializer):
 
 class ReviewUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for Review Update (PATCH /api/reviews/{id}/).
-    
     Accepts 'description' in request body and maps it to 'comment' in the model.
-    All fields are optional for PATCH requests.
     """
     description = serializers.CharField(required=False, allow_blank=True, write_only=True)
     rating = serializers.IntegerField(required=False)
@@ -145,7 +119,6 @@ class ReviewUpdateSerializer(serializers.ModelSerializer):
         return value
     
     def update(self, instance, validated_data):
-        """Update rating and comment (from description field)"""
         # Handle description field (maps to comment)
         if 'description' in validated_data:
             instance.comment = validated_data.pop('description')

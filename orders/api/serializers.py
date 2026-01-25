@@ -4,13 +4,7 @@ from ..models import Order
 
 
 class OrderListSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Order list (GET /api/orders/).
-    
-    Uses ModelSerializer which automatically includes all model fields.
-    Uses to_representation() to format the response structure with flattened fields
-    from related objects (offer_detail fields, business_user from offer.creator).
-    """
+    """Serializer for Order list (GET /api/orders/)."""
     
     class Meta:
         model = Order
@@ -19,14 +13,6 @@ class OrderListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def to_representation(self, instance):
-        """
-        Format the output representation.
-        
-        Flattens the response structure to match frontend expectations:
-        - customer_user: customer.id
-        - business_user: offer.creator.id (if offer exists)
-        - title, revisions, delivery_time_in_days, price, features, offer_type: from offer_detail
-        """
         data = super().to_representation(instance)
         
         # Flatten customer to customer_user
@@ -66,12 +52,6 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    """
-    Base Serializer for Order.
-    
-    Uses ModelSerializer which automatically includes all model fields.
-    Nested serializers for offer and offer_detail provide full related object data.
-    """
     offer = OfferSerializer(read_only=True)
     offer_detail = OfferDetailSerializer(read_only=True)
     
@@ -84,11 +64,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    """Serializer for creating an Order"""
     offer_detail_id = serializers.IntegerField(required=True)
     
     def validate_offer_detail_id(self, value):
-        """Validate that the OfferDetail exists and its Offer is not deleted"""
         if isinstance(value, str):
             raise serializers.ValidationError("Offer detail ID must be an integer, not a string.")
         from offers.models import OfferDetail
@@ -102,7 +80,6 @@ class OrderCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("The specified offer detail was not found.")
     
     def create(self, validated_data):
-        """Create a new order"""
         from offers.models import OfferDetail
         offer_detail_id = validated_data['offer_detail_id']
         offer_detail = OfferDetail.objects.get(pk=offer_detail_id)
@@ -124,14 +101,12 @@ class OrderCreateSerializer(serializers.Serializer):
 
 
 class OrderUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating an Order (status only)"""
     class Meta:
         model = Order
         fields = ['status']
     
     
     def update(self, instance, validated_data):
-        """Update the status and set completed_at if necessary"""
         from django.utils import timezone
         
         status = validated_data.get('status', instance.status)
