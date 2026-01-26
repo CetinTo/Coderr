@@ -4,6 +4,11 @@ Django REST Framework API Backend for the Coderr Frontend project.
 
 A clean, optimized Django REST API following best practices with resource-oriented URLs, custom filter backends, database query optimizations, and comprehensive permission management.
 
+**Version Information:**
+- Django 6.0.1
+- Python 3.12+ (required)
+- Django REST Framework 3.16.1
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -20,7 +25,7 @@ A clean, optimized Django REST API following best practices with resource-orient
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.12 or higher (required for Django 6.0.1)
 - pip (Python package manager)
 - Git (for cloning the repository)
 - Virtual Environment (highly recommended)
@@ -91,10 +96,29 @@ This creates:
 
 ### Environment Variables
 
-The project uses Django's default settings. For production, you should:
+The project uses a `.env.example` file as a template for environment variables. To set up your environment:
 
-1. Set `DEBUG = False` in `core/settings.py`
-2. Change `SECRET_KEY` to a secure random value
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   **Windows (PowerShell):**
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. Edit `.env` and fill in your actual values:
+   - `SECRET_KEY` - Generate a new secret key (see instructions in `.env.example`)
+   - `DEBUG` - Set to `False` for production
+   - `ALLOWED_HOSTS` - Add your domain names for production
+   - `CORS_ALLOWED_ORIGINS` - Add your frontend URLs
+   - Database configuration (if using PostgreSQL)
+
+**Important:** The `.env` file is excluded from Git via `.gitignore`. Never commit your actual `.env` file.
+
+For production, you should:
+1. Set `DEBUG = False`
+2. Use a secure `SECRET_KEY` (generate with: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
 3. Configure proper database settings (PostgreSQL recommended for production)
 4. Set up proper CORS origins in `CORS_ALLOWED_ORIGINS`
 
