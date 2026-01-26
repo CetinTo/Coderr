@@ -137,16 +137,18 @@ def _update_user_fields(user, data):
 def _update_business_profile(user, data):
     profile = get_object_or_404(BusinessProfile, user=user)
     if 'description' in data:
-        profile.description = data.get('description', '') or ''
-    if 'tel' in data or 'phone' in data:
-        profile.phone = data.get('tel') or data.get('phone', '') or ''
+        profile.description = data['description']
+    if 'tel' in data:
+        profile.phone = data['tel']
+    elif 'phone' in data:
+        profile.phone = data['phone']
     if 'email' in data:
-        profile.email = data.get('email', '') or ''
+        profile.email = data['email']
         user.email = profile.email
     if 'location' in data:
-        profile.location = data.get('location', '') or ''
+        profile.location = data['location']
     if 'working_hours' in data:
-        profile.working_hours = data.get('working_hours', '') or ''
+        profile.working_hours = data['working_hours']
     profile.save()
     user.save()
 
@@ -154,14 +156,16 @@ def _update_business_profile(user, data):
 def _update_customer_profile(user, data):
     profile = get_object_or_404(CustomerProfile, user=user)
     if 'description' in data:
-        profile.bio = data.get('description', '') or ''
-    if 'tel' in data or 'phone' in data:
-        profile.phone = data.get('tel') or data.get('phone', '') or ''
+        profile.bio = data['description']
+    if 'tel' in data:
+        profile.phone = data['tel']
+    elif 'phone' in data:
+        profile.phone = data['phone']
     if 'email' in data:
-        profile.email = data.get('email', '') or ''
+        profile.email = data['email']
         user.email = profile.email
     if 'location' in data:
-        profile.location = data.get('location', '') or ''
+        profile.location = data['location']
     profile.save()
     user.save()
 
@@ -212,6 +216,13 @@ class ProfileDetailView(APIView):
                 {'error': 'Invalid user type'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Reload user and profile from database to get updated values
+        user.refresh_from_db()
+        if user.user_type == 'business':
+            user.business_profile.refresh_from_db()
+        elif user.user_type == 'customer':
+            user.customer_profile.refresh_from_db()
         
         serializer = ProfileDetailSerializer(user)
         return Response(serializer.to_representation(user))

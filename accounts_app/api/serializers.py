@@ -128,42 +128,51 @@ class ProfileDetailSerializer(serializers.Serializer):
     """
     
     def get_file(self, user):
-        if user.user_type == 'business':
-            profile = user.business_profile
-        elif user.user_type == 'customer':
-            profile = user.customer_profile
-        else:
-            return ''
-        
-        if profile.profile_picture:
-            file_name = str(profile.profile_picture)
-            return file_name.split('/')[-1] if '/' in file_name else file_name
+        try:
+            if user.user_type == 'business':
+                profile = user.business_profile
+            elif user.user_type == 'customer':
+                profile = user.customer_profile
+            else:
+                return ''
+            
+            if profile and profile.profile_picture:
+                file_name = str(profile.profile_picture)
+                return file_name.split('/')[-1] if '/' in file_name else file_name
+        except (BusinessProfile.DoesNotExist, CustomerProfile.DoesNotExist):
+            pass
         return ''
     
     def to_representation(self, instance):
         if not isinstance(instance, User):
             return super().to_representation(instance)
         
+        profile = None
+        description = ''
+        working_hours = ''
+        
         if instance.user_type == 'business':
-            profile = instance.business_profile
-            description = profile.description
-            working_hours = profile.working_hours
+            try:
+                profile = instance.business_profile
+                description = profile.description
+                working_hours = profile.working_hours
+            except BusinessProfile.DoesNotExist:
+                profile = None
         elif instance.user_type == 'customer':
-            profile = instance.customer_profile
-            description = profile.bio
-            working_hours = ''
-        else:
-            profile = None
-            description = ''
-            working_hours = ''
+            try:
+                profile = instance.customer_profile
+                description = profile.bio
+                working_hours = ''
+            except CustomerProfile.DoesNotExist:
+                profile = None
         
         return {
             'user': instance.id,
             'username': instance.username,
-            'first_name': instance.first_name,
-            'last_name': instance.last_name,
+            'first_name': instance.first_name or '',
+            'last_name': instance.last_name or '',
             'type': instance.user_type,
-            'email': profile.email if profile.email else instance.email,
+            'email': profile.email if profile and profile.email else (instance.email or ''),
             'created_at': profile.created_at if profile else None,
             'file': self.get_file(instance),
             'location': profile.location if profile else '',
